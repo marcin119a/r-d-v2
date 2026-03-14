@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dane / eksporty
+*.csv
+*.xlsx
+*.xls
+
+# Modele (duże pliki binarne — trzymane osobno jeśli potrzeba)
+# model/*.pkl
+
+# Env / secrets
+.env
+.env.*
+*.env
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
