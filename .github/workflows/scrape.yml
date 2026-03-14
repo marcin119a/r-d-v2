@@ -1,0 +1,82 @@
+name: Scrape housing listings
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # każdy poniedziałek o 6:00 UTC
+  workflow_dispatch:        # możliwość ręcznego uruchomienia
+    inputs:
+      details:
+        description: "Pobierz szczegóły każdego ogłoszenia (--details)"
+        type: boolean
+        default: false
+
+jobs:
+  scrape:
+    name: Scrape ${{ matrix.city }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - city: krakow
+            label: Kraków
+          - city: warszawa
+            label: Warszawa
+          - city: wroclaw
+            label: Wrocław
+          - city: lodz
+            label: Łódź
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run scraper – ${{ matrix.label }}
+        run: |
+          ARGS="${{ matrix.city }} --output adresowo_${{ matrix.city }}.csv"
+          if [ "${{ inputs.details }}" = "true" ]; then
+            ARGS="$ARGS --details"
+          fi
+          python main.py $ARGS
+
+      - name: Upload CSV – ${{ matrix.label }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: adresowo_${{ matrix.city }}
+          path: adresowo_${{ matrix.city }}.csv
+          retention-days: 30
+
+  commit-results:
+    name: Commit results to repo
+    runs-on: ubuntu-latest
+    needs: scrape
+    if: ${{ !cancelled() }}   # uruchom nawet jeśli część miast padła
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: data/
+          merge-multiple: true
+
+      - name: Commit & push CSVs
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p data
+          git add data/*.csv
+          git diff --cached --quiet && echo "Brak zmian." && exit 0
+          git commit -m "data: aktualizacja ogłoszeń $(date -u '+%Y-%m-%d')"
+          git push
