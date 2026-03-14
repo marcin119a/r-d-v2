@@ -12,20 +12,8 @@ on:
 
 jobs:
   scrape:
-    name: Scrape ${{ matrix.city }}
+    name: Scrape wszystkich miast (sekwencyjnie)
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - city: krakow
-            label: Kraków
-          - city: warszawa
-            label: Warszawa
-          - city: wroclaw
-            label: Wrocław
-          - city: lodz
-            label: Łódź
 
     steps:
       - name: Checkout
@@ -40,42 +28,36 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
 
-      - name: Run scraper – ${{ matrix.label }}
+      - name: Run scraper – Kraków
         run: |
-          ARGS="${{ matrix.city }} --output adresowo_${{ matrix.city }}.csv"
-          if [ "${{ inputs.details }}" = "true" ]; then
-            ARGS="$ARGS --details"
-          fi
+          ARGS="krakow --output adresowo_krakow.csv"
+          [ "${{ inputs.details }}" = "true" ] && ARGS="$ARGS --details"
           python main.py $ARGS
 
-      - name: Upload CSV – ${{ matrix.label }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: adresowo_${{ matrix.city }}
-          path: adresowo_${{ matrix.city }}.csv
-          retention-days: 30
+      - name: Run scraper – Warszawa
+        run: |
+          ARGS="warszawa --output adresowo_warszawa.csv"
+          [ "${{ inputs.details }}" = "true" ] && ARGS="$ARGS --details"
+          python main.py $ARGS
 
-  commit-results:
-    name: Commit results to repo
-    runs-on: ubuntu-latest
-    needs: scrape
-    if: ${{ !cancelled() }}   # uruchom nawet jeśli część miast padła
+      - name: Run scraper – Wrocław
+        run: |
+          ARGS="wroclaw --output adresowo_wroclaw.csv"
+          [ "${{ inputs.details }}" = "true" ] && ARGS="$ARGS --details"
+          python main.py $ARGS
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: data/
-          merge-multiple: true
+      - name: Run scraper – Łódź
+        run: |
+          ARGS="lodz --output adresowo_lodz.csv"
+          [ "${{ inputs.details }}" = "true" ] && ARGS="$ARGS --details"
+          python main.py $ARGS
 
       - name: Commit & push CSVs
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           mkdir -p data
+          mv adresowo_*.csv data/ 2>/dev/null || true
           git add data/*.csv
           git diff --cached --quiet && echo "Brak zmian." && exit 0
           git commit -m "data: aktualizacja ogłoszeń $(date -u '+%Y-%m-%d')"
