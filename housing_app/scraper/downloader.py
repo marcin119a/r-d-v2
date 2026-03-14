@@ -2,7 +2,7 @@ import requests
 
 BASE_URL = "https://adresowo.pl"
 LISTING_URL = "https://adresowo.pl/mieszkania/{city}/_l{page}"
-DELAY_SECONDS = 1.5
+DELAY_SECONDS = 0.25
 
 
 def city_page_url(city: str, page: int) -> str:
